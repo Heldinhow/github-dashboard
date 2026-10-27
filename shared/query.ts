@@ -9,10 +9,12 @@ export function buildActivityQuery(
   user: string,
   windows: MonthWindow[],
   contributions: ContributionWindow,
+  publicOnly = false,
 ): string {
   const searches = windows.map((window) => {
     const alias = monthAlias(window.key)
-    const search = `is:pr is:merged author:${user} merged:${window.start}..${window.end}`
+    const privacy = publicOnly ? ' is:public' : ''
+    const search = `is:pr is:merged${privacy} author:${user} merged:${window.start}..${window.end}`
     return `  ${alias}: search(query: "${search}", type: ISSUE, first: 1) { issueCount }`
   })
   return [

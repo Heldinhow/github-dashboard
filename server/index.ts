@@ -1,7 +1,8 @@
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import express from 'express'
-import { DEFAULT_USER, getActivity } from './activity.ts'
+import { DEFAULT_PRIVATE, DEFAULT_USER, parsePrivate } from '../shared/state.ts'
+import { getActivity } from './activity.ts'
 import { ApiError } from './errors.ts'
 
 try {
@@ -19,7 +20,11 @@ app.get('/api/activity', async (req, res) => {
   const token = process.env.GITHUB_TOKEN?.trim() || undefined
 
   try {
-    const activity = await getActivity(user, token)
+    const requestedPrivate = req.query.private === undefined ? DEFAULT_PRIVATE : parsePrivate(req.query.private)
+    if (requestedPrivate === null) {
+      throw new ApiError(400, 'INVALID_PRIVATE', 'Parâmetro private inválido; use 0 ou 1.')
+    }
+    const activity = await getActivity(user, requestedPrivate, token)
     res.set('Cache-Control', 'no-store').json(activity)
   } catch (error) {
     res.set('Cache-Control', 'no-store')

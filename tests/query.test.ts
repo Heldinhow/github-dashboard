@@ -41,6 +41,15 @@ describe('buildActivityQuery', () => {
   it('sem o filtro público, inclui PRs privados', () => {
     expect(buildActivityQuery('usuario-dev', windows, contributions)).not.toContain('is:public')
   })
+
+  it('com o filtro público, restringe as buscas a repositórios públicos', () => {
+    const query = buildActivityQuery('usuario-dev', windows, contributions, true)
+
+    expect(query.match(/is:public/g)).toHaveLength(12)
+    expect(query).toContain(
+      'm2025_11: search(query: "is:pr is:merged is:public author:usuario-dev merged:2025-11-01..2025-11-30", type: ISSUE, first: 1) { issueCount }',
+    )
+  })
 })
 
 describe('readMonthlyCounts', () => {

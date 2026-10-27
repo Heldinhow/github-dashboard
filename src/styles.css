@@ -34,7 +34,88 @@ body {
 }
 
 .header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 32px;
+  flex-wrap: wrap;
   margin-bottom: 24px;
+}
+
+.controls {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.user-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.user-form label,
+.switch-field label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.user-row {
+  display: flex;
+  gap: 8px;
+}
+
+input[type='text'] {
+  width: 200px;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+input[type='text']:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+  border-color: var(--focus);
+}
+
+input[type='text']:disabled {
+  opacity: 0.6;
+}
+
+input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--blue);
+}
+
+.switch-field {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 4px;
+  padding-top: 26px;
+}
+
+.switch-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+  max-width: 260px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.field-error {
+  margin: 0;
+  min-height: 18px;
+  color: #ff7b72;
+  font-size: 13px;
 }
 
 h1 {
@@ -294,12 +375,18 @@ button {
   cursor: pointer;
 }
 
-button:hover {
+button:hover:not(:disabled) {
   background: #79b8ff;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 button:focus-visible,
 a:focus-visible,
+input:focus-visible,
 [tabindex]:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
@@ -371,6 +458,33 @@ a:focus-visible,
 
   h1 {
     font-size: 24px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .user-row {
+    flex-direction: column;
+  }
+
+  input[type='text'] {
+    width: 100%;
+  }
+
+  .user-row button {
+    width: 100%;
+  }
+
+  .switch-field {
+    padding-top: 0;
   }
 
   .stats {
