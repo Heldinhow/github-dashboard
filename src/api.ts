@@ -33,6 +33,6 @@ export async function fetchActivity(): Promise<ActivityResponse> {
   if (!response.ok) {
     throw new ApiClientError(body && 'error' in body ? body.error : FALLBACK)
   }
-  if (!body || !('months' in body)) throw new ApiClientError(FALLBACK)
+  if (!body || !('months' in body) || !('contributions' in body)) throw new ApiClientError(FALLBACK)
   return body
 }

@@ -139,6 +139,136 @@ h1 {
   font-weight: 600;
 }
 
+.heatmap-card {
+  margin-top: 24px;
+  padding: 20px;
+}
+
+.heatmap-title {
+  margin: 0 0 16px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.heatmap-scroll {
+  overflow-x: auto;
+}
+
+.heatmap {
+  display: block;
+}
+
+.heatmap-month,
+.heatmap-day {
+  fill: var(--muted);
+  font-size: 10px;
+}
+
+.heat-cell {
+  stroke: #30363d;
+  stroke-width: 0.5;
+}
+
+.heat-cell:focus-visible {
+  outline: none;
+  stroke: var(--focus);
+  stroke-width: 2;
+}
+
+.heat-cell.level-0 {
+  fill: #21262d;
+}
+
+.heat-cell.level-1 {
+  fill: #0e4429;
+}
+
+.heat-cell.level-2 {
+  fill: #006d32;
+}
+
+.heat-cell.level-3 {
+  fill: #26a641;
+}
+
+.heat-cell.level-4 {
+  fill: #39d353;
+}
+
+.heatmap-tooltip {
+  position: fixed;
+  z-index: 20;
+  max-width: 260px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #0d1117;
+  color: var(--text);
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 40%);
+}
+
+.heatmap-tooltip.above {
+  transform: translate(-50%, -100%);
+}
+
+.heatmap-tooltip.below {
+  transform: translateX(-50%);
+}
+
+.heatmap-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin-top: 12px;
+}
+
+.heatmap-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.heat-swatch {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+}
+
+.heat-swatch.level-0 {
+  background: #21262d;
+  border: 1px solid #30363d;
+}
+
+.heat-swatch.level-1 {
+  background: #0e4429;
+}
+
+.heat-swatch.level-2 {
+  background: #006d32;
+}
+
+.heat-swatch.level-3 {
+  background: #26a641;
+}
+
+.heat-swatch.level-4 {
+  background: #39d353;
+}
+
 .updated {
   margin-top: 16px;
   font-size: 13px;
@@ -216,6 +346,12 @@ a:focus-visible,
   margin-top: 24px;
 }
 
+.skeleton-heatmap {
+  height: 170px;
+  border-radius: 12px;
+  margin-top: 24px;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -243,6 +379,10 @@ a:focus-visible,
   }
 
   .chart-card {
+    padding: 12px;
+  }
+
+  .heatmap-card {
     padding: 12px;
   }
 }

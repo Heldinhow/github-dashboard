@@ -16,6 +16,25 @@ export interface MonthWindow {
 
 const pad = (value: number) => String(value).padStart(2, '0')
 
+export function formatDate({ year, month, day }: CalendarDate): string {
+  return `${year}-${pad(month)}-${pad(day)}`
+}
+
+export function parseDate(value: string): CalendarDate {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) throw new Error(`Data inválida: ${value}`)
+  return { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]) }
+}
+
+export function addDays(date: CalendarDate, days: number): CalendarDate {
+  const value = new Date(Date.UTC(date.year, date.month - 1, date.day + days))
+  return { year: value.getUTCFullYear(), month: value.getUTCMonth() + 1, day: value.getUTCDate() }
+}
+
+export function weekday(date: CalendarDate): number {
+  return new Date(Date.UTC(date.year, date.month - 1, date.day)).getUTCDay()
+}
+
 export function todayInTimeZone(now: Date, timeZone = TIME_ZONE): CalendarDate {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone,

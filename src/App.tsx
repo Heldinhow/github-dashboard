@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { ActivityResponse } from '../shared/types.ts'
 import { ApiClientError, fetchActivity } from './api.ts'
+import { Heatmap } from './components/Heatmap.tsx'
 import { MonthlyBarChart } from './components/MonthlyBarChart.tsx'
 import { StatCards } from './components/StatCards.tsx'
 import { formatTime } from './format.ts'
@@ -23,6 +24,7 @@ function LoadingView() {
           ))}
         </div>
         <div className="skeleton skeleton-chart" />
+        <div className="skeleton skeleton-heatmap" />
       </div>
     </>
   )
@@ -57,6 +59,7 @@ function ActivityView({ data }: { data: ActivityResponse }) {
       <div className="card chart-card">
         <MonthlyBarChart months={data.months} />
       </div>
+      <Heatmap contributions={data.contributions} />
       <p className="updated">Atualizado às {formatTime(data.fetchedAt)}</p>
     </>
   )
@@ -97,7 +100,7 @@ export function App() {
     <div className="page">
       <header className="header">
         <h1>Atividade no GitHub</h1>
-        <p className="subtitle">PRs mergeados de @{user}</p>
+        <p className="subtitle">PRs mergeados e contribuições de @{user}</p>
       </header>
       <main>
         {state.status === 'loading' && <LoadingView />}

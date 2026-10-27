@@ -1,6 +1,6 @@
 # Atividade no GitHub
 
-Dashboard pessoal local com os PRs mergeados de usuario-dev na janela de 12 meses, em barras mensais com total, média e recorde.
+Dashboard pessoal local com os PRs mergeados de usuario-dev na janela de 12 meses, em barras mensais com total, média e recorde, e um heatmap das contribuições do último ano.
 
 ## Requisitos
 
