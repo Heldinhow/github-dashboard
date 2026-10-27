@@ -34,7 +34,7 @@ export function buildContributionWindow(today: CalendarDate, timeZone = TIME_ZON
     start,
     end,
     from: `${start}T00:00:00${timeZoneOffset(startDate, timeZone)}`,
-    to: `${end}T23:59:59${timeZoneOffset(today, timeZone)}`,
+    to: `${end}T23:59:59${timeZoneOffset(today, timeZone, 23, 59, 59)}`,
     dates,
   }
 }

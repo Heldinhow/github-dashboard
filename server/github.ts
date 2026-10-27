@@ -13,9 +13,16 @@ interface GraphqlPayload<T> {
   errors?: GraphqlError[]
 }
 
+function parseReset(value: string | null): string | undefined {
+  if (!value || !/^\d+$/.test(value.trim())) return undefined
+  const seconds = Number(value)
+  if (!Number.isSafeInteger(seconds)) return undefined
+  const reset = new Date(seconds * 1000)
+  return Number.isNaN(reset.getTime()) ? undefined : reset.toISOString()
+}
+
 function rateLimitedError(headers: Headers): ApiError {
-  const reset = headers.get('x-ratelimit-reset')
-  const retryAt = reset ? new Date(Number(reset) * 1000).toISOString() : undefined
+  const retryAt = parseReset(headers.get('x-ratelimit-reset'))
   return new ApiError(429, 'RATE_LIMITED', 'Limite da API do GitHub atingido.', retryAt)
 }
 

@@ -4,7 +4,7 @@ import express from 'express'
 import { DEFAULT_PRIVATE, parsePrivate } from '../shared/state.ts'
 import { getActivity } from './activity.ts'
 import { ConfigError, loadConfig, type AppConfig } from './config.ts'
-import { ApiError } from './errors.ts'
+import { ApiError, errorResponse } from './errors.ts'
 
 try {
   process.loadEnvFile(new URL('../.env', import.meta.url))
@@ -60,13 +60,7 @@ app.get('/api/activity', async (req, res) => {
   } catch (error) {
     res.set('Cache-Control', 'no-store')
     if (error instanceof ApiError) {
-      res.status(error.status).json({
-        error: {
-          code: error.code,
-          message: error.message,
-          ...(error.retryAt ? { retryAt: error.retryAt } : {}),
-        },
-      })
+      res.status(error.status).json(errorResponse(error))
       return
     }
     res.status(502).json({

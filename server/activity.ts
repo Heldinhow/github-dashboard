@@ -33,8 +33,8 @@ const CACHE_TTL_MS = 60 * 60 * 1000
 const VIEWER_QUERY = 'query { viewer { login } }'
 
 type ActivityData = {
-  user: {
-    login: string
+  user?: {
+    login?: string
     contributionsCollection: {
       contributionCalendar: {
         weeks: Array<{
@@ -57,7 +57,7 @@ function resolveProfile(config: AppConfig, requested: string | undefined): Profi
       400,
       'UNKNOWN_PROFILE',
       `Perfil "${name}" não encontrado. Escolha um perfil configurado ou ajuste GITHUB_PROFILES_FILE e reinicie o servidor.`,
-    )
+    ).withProfiles(publicProfiles(config))
   }
   return profile
 }
@@ -99,7 +99,13 @@ async function loadActivity(
     { user, from: contributionWindow.from, to: contributionWindow.to },
   )
 
-  if (!data.user) throw new ApiError(404, 'USER_NOT_FOUND', 'Usuário não encontrado no GitHub.')
+  if (data.user === null) throw new ApiError(404, 'USER_NOT_FOUND', 'Usuário não encontrado no GitHub.')
+  if (!data.user) {
+    throw new ApiError(502, 'GITHUB_ERROR', 'Resposta incompleta do GitHub. Tente novamente.')
+  }
+  if (typeof data.user.login !== 'string' || data.user.login.length === 0) {
+    throw new ApiError(502, 'GITHUB_ERROR', 'Resposta incompleta do GitHub. Tente novamente.')
+  }
 
   let counts: number[]
   let contributions: Contributions
@@ -150,7 +156,7 @@ export async function getActivity(
       503,
       'TOKEN_MISSING',
       `${profile.tokenEnv} não configurado para o perfil "${profile.name}". Defina a variável no .env e reinicie o servidor.`,
-    )
+    ).withProfiles(publicProfiles(config))
   }
 
   const viewer = await resolveViewer(profile, token)

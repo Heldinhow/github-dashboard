@@ -46,8 +46,7 @@ export function todayInTimeZone(now: Date, timeZone = TIME_ZONE): CalendarDate {
   return { year: value('year'), month: value('month'), day: value('day') }
 }
 
-export function timeZoneOffset(date: CalendarDate, timeZone: string): string {
-  const instant = new Date(Date.UTC(date.year, date.month - 1, date.day, 12))
+function offsetMinutes(instant: Date, timeZone: string): number {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone,
     timeZoneName: 'longOffset',
@@ -55,8 +54,26 @@ export function timeZoneOffset(date: CalendarDate, timeZone: string): string {
   const name = parts.find((part) => part.type === 'timeZoneName')?.value ?? ''
   const match = /^GMT(?:([+-])(\d{2}):(\d{2}))?$/.exec(name)
   if (!match) throw new Error(`Fuso inválido: ${timeZone}`)
-  if (!match[1]) return '+00:00'
-  return `${match[1]}${match[2]}:${match[3]}`
+  if (!match[1]) return 0
+  const minutes = Number(match[2]) * 60 + Number(match[3])
+  return match[1] === '-' ? -minutes : minutes
+}
+
+// Offset do fuso no horário local pedido. Converte o relógio local para UTC duas
+// vezes para acertar transições de DST (o offset do meio-dia não vale à meia-noite).
+export function timeZoneOffset(
+  date: CalendarDate,
+  timeZone: string,
+  hour = 0,
+  minute = 0,
+  second = 0,
+): string {
+  const wallClock = Date.UTC(date.year, date.month - 1, date.day, hour, minute, second)
+  let offset = offsetMinutes(new Date(wallClock), timeZone)
+  offset = offsetMinutes(new Date(wallClock - offset * 60_000), timeZone)
+  const sign = offset < 0 ? '-' : '+'
+  const absolute = Math.abs(offset)
+  return `${sign}${pad(Math.floor(absolute / 60))}:${pad(absolute % 60)}`
 }
 
 export function daysInMonth(year: number, month: number): number {

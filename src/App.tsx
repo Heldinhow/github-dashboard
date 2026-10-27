@@ -22,7 +22,6 @@ type State =
   | { status: 'error'; message: string; retryAt?: string }
 
 interface ProfileMeta {
-  profiles: PublicProfile[]
   profile: string
   filters: ProfileFilters
 }
@@ -100,6 +99,7 @@ export function App() {
   const [input, setInput] = useState(initialRequest.user ?? '')
   const [inputError, setInputError] = useState<string | null>(null)
   const [state, setState] = useState<State>({ status: 'loading' })
+  const [profiles, setProfiles] = useState<PublicProfile[]>([])
   const [meta, setMeta] = useState<ProfileMeta | null>(null)
   const [attempt, setAttempt] = useState(0)
 
@@ -112,13 +112,15 @@ export function App() {
       .then((data) => {
         if (cancelled) return
         setState({ status: 'ready', data })
-        setMeta({ profiles: data.profiles, profile: data.profile, filters: data.filters })
+        setProfiles(data.profiles)
+        setMeta({ profile: data.profile, filters: data.filters })
         setInput(data.user)
         replaceUrl({ profile: data.profile, user: data.user, private: request.private })
       })
       .catch((error: unknown) => {
         if (cancelled) return
         if (error instanceof ApiClientError) {
+          if (error.profiles) setProfiles(error.profiles)
           setState({ status: 'error', message: error.message, retryAt: error.retryAt })
           return
         }
@@ -135,10 +137,12 @@ export function App() {
 
   const loading = state.status === 'loading'
   const data = state.status === 'ready' ? state.data : null
-  const profiles = meta?.profiles ?? []
   const displayUser = data?.user ?? request.user
   const displayProfile = data?.profile ?? request.profile ?? meta?.profile
-  const selectedProfile = request.profile ?? meta?.profile ?? ''
+  const selectedProfile =
+    request.profile && profiles.some((profile) => profile.name === request.profile)
+      ? request.profile
+      : (meta?.profile ?? profiles[0]?.name ?? '')
   const filters = data?.filters ?? (request.profile && request.profile !== meta?.profile ? undefined : meta?.filters)
   const privateAllowed = data ? data.canIncludePrivate : true
   const privateChecked = privateAllowed && request.private === 1
