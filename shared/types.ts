@@ -11,6 +11,17 @@ export interface ActivityStats {
   record: { key: string; label: string; count: number } | null
 }
 
+export interface PublicProfile {
+  name: string
+  user: string
+}
+
+export interface ProfileFilters {
+  orgs: string[]
+  repos: string[]
+  timeZone: string
+}
+
 export interface ContributionDay {
   date: string
   count: number
@@ -24,6 +35,9 @@ export interface Contributions {
 }
 
 export interface ActivityResponse {
+  profile: string
+  profiles: PublicProfile[]
+  filters: ProfileFilters
   user: string
   viewer: string
   includePrivate: boolean

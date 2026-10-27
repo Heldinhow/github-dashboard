@@ -21,32 +21,39 @@ describe('parsePrivate', () => {
 })
 
 describe('readActivityState', () => {
-  it('usa usuario-dev e privado ligado por padrão', () => {
-    expect(readActivityState('')).toEqual({ user: 'usuario-dev', private: 1 })
-    expect(readActivityState('?')).toEqual({ user: 'usuario-dev', private: 1 })
+  it('sem parâmetros deixa perfil e usuário para o servidor e privado ligado', () => {
+    expect(readActivityState('')).toEqual({ private: 1 })
+    expect(readActivityState('?')).toEqual({ private: 1 })
   })
 
-  it('lê user e private da URL', () => {
-    expect(readActivityState('?user=octocat&private=0')).toEqual({ user: 'octocat', private: 0 })
+  it('lê profile, user e private da URL', () => {
+    expect(readActivityState('?profile=Trabalho&user=octocat&private=0')).toEqual({
+      profile: 'Trabalho',
+      user: 'octocat',
+      private: 0,
+    })
   })
 
-  it('ignora private fora de 0/1 e user vazio', () => {
-    expect(readActivityState('?user=&private=2')).toEqual({ user: 'usuario-dev', private: 1 })
+  it('ignora private fora de 0/1, profile e user vazios', () => {
+    expect(readActivityState('?user=&profile=&private=2')).toEqual({ private: 1 })
   })
 
-  it('serializa o estado para a URL', () => {
-    expect(activitySearch({ user: 'usuario-dev', private: 1 })).toBe('?user=usuario-dev&private=1')
+  it('serializa o estado canônico para a URL', () => {
+    expect(activitySearch({ profile: 'Trabalho', user: 'octocat', private: 1 })).toBe(
+      '?profile=Trabalho&user=octocat&private=1',
+    )
     expect(activitySearch({ user: 'octo cat', private: 0 })).toBe('?user=octo+cat&private=0')
+    expect(activitySearch({ private: 1 })).toBe('?private=1')
   })
 })
 
 describe('canIncludePrivate', () => {
   it('é verdadeiro para o viewer, sem diferenciar maiúsculas', () => {
-    expect(canIncludePrivate('usuario-dev', 'usuario-dev')).toBe(true)
+    expect(canIncludePrivate('octocat', 'Octocat')).toBe(true)
   })
 
   it('é falso para outro usuário', () => {
-    expect(canIncludePrivate('octocat', 'usuario-dev')).toBe(false)
+    expect(canIncludePrivate('hubot', 'octocat')).toBe(false)
   })
 })
 
@@ -59,26 +66,26 @@ describe('includePrivate', () => {
 })
 
 describe('activityCacheKey', () => {
-  it('separa usuário canônico, modo efetivo e dia local', () => {
+  it('separa perfil, usuário canônico, modo efetivo e dia local', () => {
     const today = { year: 2026, month: 10, day: 26 }
 
-    expect(activityCacheKey('usuario-dev', true, today)).toBe('usuario-dev|1|2026-10-26')
-    expect(activityCacheKey('usuario-dev', false, today)).toBe('usuario-dev|0|2026-10-26')
+    expect(activityCacheKey('Pessoal', 'Octocat', true, today)).toBe('Pessoal|octocat|1|2026-10-26')
+    expect(activityCacheKey('Trabalho', 'octocat', false, today)).toBe('Trabalho|octocat|0|2026-10-26')
   })
 })
 
 describe('isValidLogin', () => {
   it('aceita o formato de login do GitHub', () => {
-    expect(isValidLogin('usuario-dev')).toBe(true)
+    expect(isValidLogin('octocat')).toBe(true)
     expect(isValidLogin('a')).toBe(true)
     expect(isValidLogin('a'.repeat(39))).toBe(true)
   })
 
   it('rejeita vazio e formatos fora do padrão', () => {
     expect(isValidLogin('')).toBe(false)
-    expect(isValidLogin('-usuario-dev')).toBe(false)
-    expect(isValidLogin('usuario-dev-')).toBe(false)
-    expect(isValidLogin('held_inhow')).toBe(false)
+    expect(isValidLogin('-octocat')).toBe(false)
+    expect(isValidLogin('octocat-')).toBe(false)
+    expect(isValidLogin('octo_cat')).toBe(false)
     expect(isValidLogin('a'.repeat(40))).toBe(false)
   })
 })

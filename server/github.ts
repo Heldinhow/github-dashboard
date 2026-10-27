@@ -1,6 +1,5 @@
 import { ApiError } from './errors.ts'
 
-const ENDPOINT = 'https://api.github.com/graphql'
 const TIMEOUT_MS = 10_000
 const GENERIC_MESSAGE = 'Falha ao consultar o GitHub. Tente novamente.'
 
@@ -21,13 +20,14 @@ function rateLimitedError(headers: Headers): ApiError {
 }
 
 export async function graphqlRequest<T>(
+  endpoint: string,
   token: string,
   query: string,
   variables: Record<string, string>,
 ): Promise<T> {
   let response: Response
   try {
-    response = await fetch(ENDPOINT, {
+    response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         Authorization: `bearer ${token}`,

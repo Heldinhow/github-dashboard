@@ -5,7 +5,11 @@ import {
   readActivityState,
   type ActivityRequest,
 } from '../shared/state.ts'
-import type { ActivityResponse } from '../shared/types.ts'
+import type {
+  ActivityResponse,
+  ProfileFilters,
+  PublicProfile,
+} from '../shared/types.ts'
 import { ApiClientError, fetchActivity } from './api.ts'
 import { Heatmap } from './components/Heatmap.tsx'
 import { MonthlyBarChart } from './components/MonthlyBarChart.tsx'
@@ -17,10 +21,24 @@ type State =
   | { status: 'ready'; data: ActivityResponse }
   | { status: 'error'; message: string; retryAt?: string }
 
+interface ProfileMeta {
+  profiles: PublicProfile[]
+  profile: string
+  filters: ProfileFilters
+}
+
 const initialRequest = readActivityState(window.location.search)
 
 function replaceUrl(request: ActivityRequest) {
   window.history.replaceState(null, '', activitySearch(request))
+}
+
+function filtersSummary(filters: ProfileFilters): string {
+  const items =
+    filters.repos.length > 0
+      ? filters.repos.map((repo) => `repo:${repo}`)
+      : filters.orgs.map((org) => `org:${org}`)
+  return items.length > 0 ? `Filtros: ${items.join(', ')}` : 'Sem filtros de contexto'
 }
 
 function LoadingView() {
@@ -79,9 +97,10 @@ function ActivityView({ data }: { data: ActivityResponse }) {
 
 export function App() {
   const [request, setRequest] = useState<ActivityRequest>(initialRequest)
-  const [input, setInput] = useState(initialRequest.user)
+  const [input, setInput] = useState(initialRequest.user ?? '')
   const [inputError, setInputError] = useState<string | null>(null)
   const [state, setState] = useState<State>({ status: 'loading' })
+  const [meta, setMeta] = useState<ProfileMeta | null>(null)
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
@@ -93,8 +112,9 @@ export function App() {
       .then((data) => {
         if (cancelled) return
         setState({ status: 'ready', data })
+        setMeta({ profiles: data.profiles, profile: data.profile, filters: data.filters })
         setInput(data.user)
-        replaceUrl({ user: data.user, private: request.private })
+        replaceUrl({ profile: data.profile, user: data.user, private: request.private })
       })
       .catch((error: unknown) => {
         if (cancelled) return
@@ -115,7 +135,11 @@ export function App() {
 
   const loading = state.status === 'loading'
   const data = state.status === 'ready' ? state.data : null
+  const profiles = meta?.profiles ?? []
   const displayUser = data?.user ?? request.user
+  const displayProfile = data?.profile ?? request.profile ?? meta?.profile
+  const selectedProfile = request.profile ?? meta?.profile ?? ''
+  const filters = data?.filters ?? (request.profile && request.profile !== meta?.profile ? undefined : meta?.filters)
   const privateAllowed = data ? data.canIncludePrivate : true
   const privateChecked = privateAllowed && request.private === 1
   const showPrivateHint = data !== null && !data.canIncludePrivate
@@ -128,11 +152,28 @@ export function App() {
       return
     }
     setInputError(null)
-    setRequest({ user, private: request.private })
+    const profile = request.profile ?? data?.profile ?? meta?.profile
+    setRequest({
+      ...(profile ? { profile } : {}),
+      user,
+      private: request.private,
+    })
   }
 
   function changePrivate(checked: boolean) {
-    setRequest({ user: data?.user ?? request.user, private: checked ? 1 : 0 })
+    const profile = request.profile ?? data?.profile ?? meta?.profile
+    const user = data?.user ?? request.user
+    setRequest({
+      ...(profile ? { profile } : {}),
+      ...(user ? { user } : {}),
+      private: checked ? 1 : 0,
+    })
+  }
+
+  function changeProfile(name: string) {
+    setInput('')
+    setInputError(null)
+    setRequest({ profile: name, private: 1 })
   }
 
   return (
@@ -140,9 +181,31 @@ export function App() {
       <header className="header">
         <div>
           <h1>Atividade no GitHub</h1>
-          <p className="subtitle">PRs mergeados e contribuições de @{displayUser}</p>
+          <p className="subtitle">
+            PRs mergeados e contribuições de @{displayUser ?? '…'}
+            {displayProfile ? ` (perfil ${displayProfile})` : ''}
+          </p>
         </div>
         <div className="controls">
+          <div className="profile-field">
+            <label htmlFor="profile-select">Perfil</label>
+            <select
+              id="profile-select"
+              value={selectedProfile}
+              disabled={loading}
+              onChange={(event) => changeProfile(event.target.value)}
+            >
+              {profiles.length === 0 ? (
+                <option value="">{loading ? 'Carregando…' : 'Sem perfis'}</option>
+              ) : (
+                profiles.map((profile) => (
+                  <option key={profile.name} value={profile.name}>
+                    {profile.name} (@{profile.user})
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
           <form className="user-form" onSubmit={applyUser} noValidate>
             <label htmlFor="user-input">Usuário do GitHub</label>
             <div className="user-row">
@@ -150,7 +213,7 @@ export function App() {
                 id="user-input"
                 type="text"
                 value={input}
-                placeholder="usuario-dev"
+                placeholder="login do GitHub"
                 autoComplete="username"
                 autoCapitalize="none"
                 spellCheck={false}
@@ -186,6 +249,16 @@ export function App() {
               </p>
             )}
           </div>
+          {filters && (
+            <div className="profile-summary">
+              <p>
+                {filtersSummary(filters)} · Fuso: {filters.timeZone}
+              </p>
+              <p className="profile-hint">
+                Filtros de contexto valem só para os PRs; o heatmap mostra o calendário do perfil.
+              </p>
+            </div>
+          )}
         </div>
       </header>
       <main>

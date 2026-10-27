@@ -1,4 +1,4 @@
-import { addDays, formatDate, type CalendarDate } from './months.ts'
+import { TIME_ZONE, addDays, formatDate, timeZoneOffset, type CalendarDate } from './months.ts'
 import type { ContributionDay, Contributions } from './types.ts'
 
 export interface ContributionWindow {
@@ -20,7 +20,7 @@ export interface ContributionsSource {
   } | null
 }
 
-export function buildContributionWindow(today: CalendarDate): ContributionWindow {
+export function buildContributionWindow(today: CalendarDate, timeZone = TIME_ZONE): ContributionWindow {
   const startDate = addDays(today, -364)
   const start = formatDate(startDate)
   const end = formatDate(today)
@@ -33,9 +33,8 @@ export function buildContributionWindow(today: CalendarDate): ContributionWindow
   return {
     start,
     end,
-    // America/Sao_Paulo não tem horário de verão desde 2019.
-    from: `${start}T00:00:00-03:00`,
-    to: `${end}T23:59:59-03:00`,
+    from: `${start}T00:00:00${timeZoneOffset(startDate, timeZone)}`,
+    to: `${end}T23:59:59${timeZoneOffset(today, timeZone)}`,
     dates,
   }
 }
