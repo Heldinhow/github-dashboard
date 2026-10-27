@@ -1,23 +1,33 @@
 import { describe, expect, it } from 'vitest'
+import { buildContributionWindow } from '../shared/contributions.ts'
 import { buildMonthWindows } from '../shared/months.ts'
 import { buildActivityQuery, monthAlias, readMonthlyCounts } from '../shared/query.ts'
 
 const windows = buildMonthWindows({ year: 2026, month: 10, day: 26 })
+const contributions = buildContributionWindow({ year: 2026, month: 10, day: 26 })
 
 describe('buildActivityQuery', () => {
   it('cria um alias de busca por mês', () => {
-    const query = buildActivityQuery('usuario-dev', windows)
+    const query = buildActivityQuery('usuario-dev', windows, contributions)
 
     expect(query.match(/search\(/g)).toHaveLength(12)
     expect(query.match(/first: 1/g)).toHaveLength(12)
-    expect(query).toContain('user(login: $user) { login }')
+    expect(query).toContain('user(login: $user)')
     for (const window of windows) {
       expect(query).toContain(`${monthAlias(window.key)}: search(`)
     }
   })
 
+  it('inclui a coleção de contribuições com from/to', () => {
+    const query = buildActivityQuery('usuario-dev', windows, contributions)
+
+    expect(query).toContain('query Activity($user: String!, $from: DateTime!, $to: DateTime!)')
+    expect(query).toContain('contributionsCollection(from: $from, to: $to)')
+    expect(query).toContain('weeks { contributionDays { date contributionCount } }')
+  })
+
   it('monta a busca com autor e intervalo do mês', () => {
-    const query = buildActivityQuery('usuario-dev', windows)
+    const query = buildActivityQuery('usuario-dev', windows, contributions)
 
     expect(query).toContain(
       'm2025_11: search(query: "is:pr is:merged author:usuario-dev merged:2025-11-01..2025-11-30", type: ISSUE, first: 1) { issueCount }',
@@ -29,7 +39,7 @@ describe('buildActivityQuery', () => {
   })
 
   it('sem o filtro público, inclui PRs privados', () => {
-    expect(buildActivityQuery('usuario-dev', windows)).not.toContain('is:public')
+    expect(buildActivityQuery('usuario-dev', windows, contributions)).not.toContain('is:public')
   })
 })
 
