@@ -25,6 +25,9 @@ export interface Contributions {
 
 export interface ActivityResponse {
   user: string
+  viewer: string
+  includePrivate: boolean
+  canIncludePrivate: boolean
   months: MonthStat[]
   stats: ActivityStats
   contributions: Contributions

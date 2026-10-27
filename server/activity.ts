@@ -5,14 +5,20 @@ import {
 } from '../shared/contributions.ts'
 import { buildMonthWindows, todayInTimeZone } from '../shared/months.ts'
 import { buildActivityQuery, readMonthlyCounts } from '../shared/query.ts'
+import {
+  activityCacheKey,
+  canIncludePrivate,
+  includePrivate,
+  isValidLogin,
+  type PrivateMode,
+} from '../shared/state.ts'
 import { computeStats } from '../shared/stats.ts'
 import type { ActivityResponse, Contributions, MonthStat } from '../shared/types.ts'
 import { ApiError } from './errors.ts'
 import { graphqlRequest } from './github.ts'
 
-export const DEFAULT_USER = 'usuario-dev'
 const CACHE_TTL_MS = 60 * 60 * 1000
-const LOGIN_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/
+const VIEWER_QUERY = 'query { viewer { login } }'
 
 type ActivityData = {
   user: {
@@ -27,19 +33,35 @@ type ActivityData = {
   } | null
 } & Record<string, unknown>
 
-export function isValidLogin(value: string): boolean {
-  return LOGIN_PATTERN.test(value)
+const cache = createCache<ActivityResponse>(CACHE_TTL_MS)
+// Sem TTL: o dono do token não muda enquanto o processo viver.
+const viewerCache = createCache<string>(Number.POSITIVE_INFINITY)
+
+async function resolveViewer(token: string): Promise<string> {
+  return viewerCache.getOrLoad('viewer', async () => {
+    const data = await graphqlRequest<{ viewer?: { login?: unknown } }>(token, VIEWER_QUERY, {})
+    if (typeof data.viewer?.login !== 'string' || data.viewer.login.length === 0) {
+      throw new ApiError(502, 'GITHUB_ERROR', 'Resposta incompleta do GitHub. Tente novamente.')
+    }
+    return data.viewer.login
+  })
 }
 
-const cache = createCache<ActivityResponse>(CACHE_TTL_MS)
-
-async function loadActivity(user: string, token: string, now: Date): Promise<ActivityResponse> {
+async function loadActivity(
+  user: string,
+  viewer: string,
+  requestedPrivate: PrivateMode,
+  allowedPrivate: boolean,
+  token: string,
+  now: Date,
+): Promise<ActivityResponse> {
   const today = todayInTimeZone(now)
   const windows = buildMonthWindows(today)
   const contributionWindow = buildContributionWindow(today)
+  const withPrivate = includePrivate(requestedPrivate, allowedPrivate)
   const data = await graphqlRequest<ActivityData>(
     token,
-    buildActivityQuery(user, windows, contributionWindow),
+    buildActivityQuery(user, windows, contributionWindow, !withPrivate),
     { user, from: contributionWindow.from, to: contributionWindow.to },
   )
 
@@ -63,6 +85,9 @@ async function loadActivity(user: string, token: string, now: Date): Promise<Act
 
   return {
     user: data.user.login,
+    viewer,
+    includePrivate: withPrivate,
+    canIncludePrivate: allowedPrivate,
     months,
     stats: computeStats(months),
     contributions,
@@ -72,22 +97,26 @@ async function loadActivity(user: string, token: string, now: Date): Promise<Act
 
 export async function getActivity(
   rawUser: string,
+  requestedPrivate: PrivateMode,
   token: string | undefined,
   now: Date = new Date(),
 ): Promise<ActivityResponse> {
   if (!isValidLogin(rawUser)) throw new ApiError(400, 'INVALID_USER', 'Login do GitHub inválido.')
+  if (!token) {
+    throw new ApiError(
+      503,
+      'TOKEN_MISSING',
+      'GITHUB_TOKEN não configurado. Defina o token no .env e reinicie o servidor.',
+    )
+  }
 
+  const viewer = await resolveViewer(token)
+  const allowedPrivate = canIncludePrivate(rawUser, viewer)
+  const withPrivate = includePrivate(requestedPrivate, allowedPrivate)
   const today = todayInTimeZone(now)
-  const cacheKey = `${rawUser.toLowerCase()}|${today.year}-${today.month}-${today.day}`
+  const cacheKey = activityCacheKey(rawUser, withPrivate, today)
 
-  return cache.getOrLoad(cacheKey, () => {
-    if (!token) {
-      throw new ApiError(
-        503,
-        'TOKEN_MISSING',
-        'GITHUB_TOKEN não configurado. Defina o token no .env e reinicie o servidor.',
-      )
-    }
-    return loadActivity(rawUser, token, now)
-  })
+  return cache.getOrLoad(cacheKey, () =>
+    loadActivity(rawUser, viewer, requestedPrivate, allowedPrivate, token, now),
+  )
 }

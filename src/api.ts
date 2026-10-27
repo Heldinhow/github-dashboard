@@ -1,3 +1,4 @@
+import { activitySearch, type ActivityRequest } from '../shared/state.ts'
 import type { ActivityResponse } from '../shared/types.ts'
 
 interface ErrorBody {
@@ -21,10 +22,10 @@ export class ApiClientError extends Error {
 
 const FALLBACK = { code: 'GITHUB_ERROR', message: 'Falha ao carregar a atividade. Tente novamente.' }
 
-export async function fetchActivity(): Promise<ActivityResponse> {
+export async function fetchActivity(request: ActivityRequest): Promise<ActivityResponse> {
   let response: Response
   try {
-    response = await fetch('/api/activity')
+    response = await fetch(`/api/activity${activitySearch(request)}`)
   } catch {
     throw new ApiClientError(FALLBACK)
   }
