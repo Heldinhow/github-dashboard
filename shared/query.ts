@@ -1,5 +1,6 @@
 import type { ContributionWindow } from './contributions.ts'
 import type { MonthWindow } from './months.ts'
+import type { ProfileFilters } from './types.ts'
 
 export function monthAlias(key: string): string {
   return `m${key.replace('-', '_')}`
@@ -10,11 +11,16 @@ export function buildActivityQuery(
   windows: MonthWindow[],
   contributions: ContributionWindow,
   publicOnly = false,
+  filters: Pick<ProfileFilters, 'orgs' | 'repos'> = { orgs: [], repos: [] },
 ): string {
+  const context =
+    filters.repos.length > 0
+      ? filters.repos.map((repo) => ` repo:${repo}`).join('')
+      : filters.orgs.map((org) => ` org:${org}`).join('')
   const searches = windows.map((window) => {
     const alias = monthAlias(window.key)
     const privacy = publicOnly ? ' is:public' : ''
-    const search = `is:pr is:merged${privacy} author:${user} merged:${window.start}..${window.end}`
+    const search = `is:pr is:merged${privacy} author:${user}${context} merged:${window.start}..${window.end}`
     return `  ${alias}: search(query: "${search}", type: ISSUE, first: 1) { issueCount }`
   })
   return [

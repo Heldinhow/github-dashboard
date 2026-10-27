@@ -1,0 +1,21 @@
+{
+  "profiles": [
+    {
+      "name": "Trabalho",
+      "user": "sua-conta-trabalho",
+      "tokenEnv": "WORK_GITHUB_TOKEN",
+      "apiUrl": "https://api.github.com",
+      "orgs": ["minha-org"],
+      "timeZone": "America/Sao_Paulo"
+    },
+    {
+      "name": "Empresa (Enterprise)",
+      "user": "sua-conta-enterprise",
+      "tokenEnv": "ENTERPRISE_GITHUB_TOKEN",
+      "apiUrl": "https://ghe.exemplo.com/api/v3",
+      "graphqlUrl": "https://ghe.exemplo.com/api/graphql",
+      "repos": ["minha-org/app", "minha-org/lib"],
+      "timeZone": "America/Sao_Paulo"
+    }
+  ]
+}

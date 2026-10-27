@@ -2,8 +2,9 @@ import { createCache } from '../shared/cache.ts'
 import {
   buildContributionWindow,
   readContributions,
+  type ContributionWindow,
 } from '../shared/contributions.ts'
-import { buildMonthWindows, todayInTimeZone } from '../shared/months.ts'
+import { buildMonthWindows, todayInTimeZone, type CalendarDate } from '../shared/months.ts'
 import { buildActivityQuery, readMonthlyCounts } from '../shared/query.ts'
 import {
   activityCacheKey,
@@ -13,7 +14,18 @@ import {
   type PrivateMode,
 } from '../shared/state.ts'
 import { computeStats } from '../shared/stats.ts'
-import type { ActivityResponse, Contributions, MonthStat } from '../shared/types.ts'
+import type {
+  ActivityResponse,
+  Contributions,
+  MonthStat,
+  ProfileFilters,
+} from '../shared/types.ts'
+import {
+  effectiveFilters,
+  publicProfiles,
+  type AppConfig,
+  type ProfileConfig,
+} from './config.ts'
 import { ApiError } from './errors.ts'
 import { graphqlRequest } from './github.ts'
 
@@ -34,12 +46,30 @@ type ActivityData = {
 } & Record<string, unknown>
 
 const cache = createCache<ActivityResponse>(CACHE_TTL_MS)
-// Sem TTL: o dono do token não muda enquanto o processo viver.
+// Sem TTL: o dono do token de cada perfil não muda enquanto o processo viver.
 const viewerCache = createCache<string>(Number.POSITIVE_INFINITY)
 
-async function resolveViewer(token: string): Promise<string> {
-  return viewerCache.getOrLoad('viewer', async () => {
-    const data = await graphqlRequest<{ viewer?: { login?: unknown } }>(token, VIEWER_QUERY, {})
+function resolveProfile(config: AppConfig, requested: string | undefined): ProfileConfig {
+  const name = requested?.trim() || config.defaultProfile
+  const profile = config.profiles.find((candidate) => candidate.name === name)
+  if (!profile) {
+    throw new ApiError(
+      400,
+      'UNKNOWN_PROFILE',
+      `Perfil "${name}" não encontrado. Escolha um perfil configurado ou ajuste GITHUB_PROFILES_FILE e reinicie o servidor.`,
+    )
+  }
+  return profile
+}
+
+async function resolveViewer(profile: ProfileConfig, token: string): Promise<string> {
+  return viewerCache.getOrLoad(profile.name, async () => {
+    const data = await graphqlRequest<{ viewer?: { login?: unknown } }>(
+      profile.graphqlUrl,
+      token,
+      VIEWER_QUERY,
+      {},
+    )
     if (typeof data.viewer?.login !== 'string' || data.viewer.login.length === 0) {
       throw new ApiError(502, 'GITHUB_ERROR', 'Resposta incompleta do GitHub. Tente novamente.')
     }
@@ -48,20 +78,24 @@ async function resolveViewer(token: string): Promise<string> {
 }
 
 async function loadActivity(
+  profile: ProfileConfig,
+  config: AppConfig,
   user: string,
   viewer: string,
   requestedPrivate: PrivateMode,
   allowedPrivate: boolean,
   token: string,
-  now: Date,
+  today: CalendarDate,
 ): Promise<ActivityResponse> {
-  const today = todayInTimeZone(now)
   const windows = buildMonthWindows(today)
-  const contributionWindow = buildContributionWindow(today)
+  const contributionWindow: ContributionWindow = buildContributionWindow(today, profile.timeZone)
   const withPrivate = includePrivate(requestedPrivate, allowedPrivate)
+  const context = effectiveFilters(profile)
+  const filters: ProfileFilters = { ...context, timeZone: profile.timeZone }
   const data = await graphqlRequest<ActivityData>(
+    profile.graphqlUrl,
     token,
-    buildActivityQuery(user, windows, contributionWindow, !withPrivate),
+    buildActivityQuery(user, windows, contributionWindow, !withPrivate, context),
     { user, from: contributionWindow.from, to: contributionWindow.to },
   )
 
@@ -84,6 +118,9 @@ async function loadActivity(
   }))
 
   return {
+    profile: profile.name,
+    profiles: publicProfiles(config),
+    filters,
     user: data.user.login,
     viewer,
     includePrivate: withPrivate,
@@ -96,27 +133,33 @@ async function loadActivity(
 }
 
 export async function getActivity(
-  rawUser: string,
+  config: AppConfig,
+  requestedProfile: string | undefined,
+  rawUser: string | undefined,
   requestedPrivate: PrivateMode,
-  token: string | undefined,
   now: Date = new Date(),
+  env: Record<string, string | undefined> = process.env,
 ): Promise<ActivityResponse> {
-  if (!isValidLogin(rawUser)) throw new ApiError(400, 'INVALID_USER', 'Login do GitHub inválido.')
+  const profile = resolveProfile(config, requestedProfile)
+  const user = rawUser?.trim() || profile.user
+  if (!isValidLogin(user)) throw new ApiError(400, 'INVALID_USER', 'Login do GitHub inválido.')
+
+  const token = env[profile.tokenEnv]?.trim()
   if (!token) {
     throw new ApiError(
       503,
       'TOKEN_MISSING',
-      'GITHUB_TOKEN não configurado. Defina o token no .env e reinicie o servidor.',
+      `${profile.tokenEnv} não configurado para o perfil "${profile.name}". Defina a variável no .env e reinicie o servidor.`,
     )
   }
 
-  const viewer = await resolveViewer(token)
-  const allowedPrivate = canIncludePrivate(rawUser, viewer)
+  const viewer = await resolveViewer(profile, token)
+  const allowedPrivate = canIncludePrivate(user, viewer)
   const withPrivate = includePrivate(requestedPrivate, allowedPrivate)
-  const today = todayInTimeZone(now)
-  const cacheKey = activityCacheKey(rawUser, withPrivate, today)
+  const today = todayInTimeZone(now, profile.timeZone)
+  const cacheKey = activityCacheKey(profile.name, user, withPrivate, today)
 
   return cache.getOrLoad(cacheKey, () =>
-    loadActivity(rawUser, viewer, requestedPrivate, allowedPrivate, token, now),
+    loadActivity(profile, config, user, viewer, requestedPrivate, allowedPrivate, token, today),
   )
 }

@@ -46,6 +46,19 @@ export function todayInTimeZone(now: Date, timeZone = TIME_ZONE): CalendarDate {
   return { year: value('year'), month: value('month'), day: value('day') }
 }
 
+export function timeZoneOffset(date: CalendarDate, timeZone: string): string {
+  const instant = new Date(Date.UTC(date.year, date.month - 1, date.day, 12))
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    timeZoneName: 'longOffset',
+  }).formatToParts(instant)
+  const name = parts.find((part) => part.type === 'timeZoneName')?.value ?? ''
+  const match = /^GMT(?:([+-])(\d{2}):(\d{2}))?$/.exec(name)
+  if (!match) throw new Error(`Fuso inválido: ${timeZone}`)
+  if (!match[1]) return '+00:00'
+  return `${match[1]}${match[2]}:${match[3]}`
+}
+
 export function daysInMonth(year: number, month: number): number {
   return new Date(Date.UTC(year, month, 0)).getUTCDate()
 }

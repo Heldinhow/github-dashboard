@@ -4,5 +4,6 @@ coverage/
 .env
 .env.*
 !.env.example
+profiles.local.json
 .openchamber/
 .playwright-mcp/

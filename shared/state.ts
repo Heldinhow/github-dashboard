@@ -1,12 +1,12 @@
 import type { CalendarDate } from './months.ts'
 
-export const DEFAULT_USER = 'usuario-dev'
 export const DEFAULT_PRIVATE = 1
 
 export type PrivateMode = 0 | 1
 
 export interface ActivityRequest {
-  user: string
+  profile?: string
+  user?: string
   private: PrivateMode
 }
 
@@ -32,16 +32,28 @@ export function includePrivate(requested: PrivateMode, allowed: boolean): boolea
 
 export function readActivityState(search: string): ActivityRequest {
   const params = new URLSearchParams(search)
+  const profile = params.get('profile')?.trim()
+  const user = params.get('user')?.trim()
   return {
-    user: params.get('user')?.trim() || DEFAULT_USER,
+    ...(profile ? { profile } : {}),
+    ...(user ? { user } : {}),
     private: parsePrivate(params.get('private')) ?? DEFAULT_PRIVATE,
   }
 }
 
 export function activitySearch(request: ActivityRequest): string {
-  return `?${new URLSearchParams({ user: request.user, private: String(request.private) }).toString()}`
+  const params = new URLSearchParams()
+  if (request.profile) params.set('profile', request.profile)
+  if (request.user) params.set('user', request.user)
+  params.set('private', String(request.private))
+  return `?${params.toString()}`
 }
 
-export function activityCacheKey(user: string, privateMode: boolean, today: CalendarDate): string {
-  return `${user.toLowerCase()}|${privateMode ? 1 : 0}|${today.year}-${today.month}-${today.day}`
+export function activityCacheKey(
+  profile: string,
+  user: string,
+  privateMode: boolean,
+  today: CalendarDate,
+): string {
+  return `${profile}|${user.toLowerCase()}|${privateMode ? 1 : 0}|${today.year}-${today.month}-${today.day}`
 }
