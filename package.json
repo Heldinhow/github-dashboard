@@ -11,7 +11,8 @@
     "build": "vite build",
     "start": "node server/index.ts",
     "test": "TZ=America/Sao_Paulo vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check": "npm test && npm run typecheck && npm run build"
   },
   "dependencies": {
     "express": "^5.3.0",

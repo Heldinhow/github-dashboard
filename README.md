@@ -57,9 +57,14 @@ npm run build    # build do frontend em dist/
 npm start        # Express em http://127.0.0.1:3001 servindo dist/ e a API
 npm test         # Vitest
 npm run typecheck
+npm run check    # testes + typecheck + build (antes de cada merge local)
 ```
 
 O servidor escuta em `127.0.0.1` por padrão e carrega o `.env` se existir. Sem `GITHUB_USER`, a API responde `CONFIG_MISSING`; sem a variável de token do perfil, `TOKEN_MISSING`. A página mostra o erro de configuração em vez de cair em uma conta padrão. Reinicie o servidor depois de alterar o `.env` ou o arquivo de perfis.
+
+## Qualidade e merge
+
+Rode `npm run check` antes de cada merge local. Ele executa testes, typecheck e build.
 
 ## Perfis
 
