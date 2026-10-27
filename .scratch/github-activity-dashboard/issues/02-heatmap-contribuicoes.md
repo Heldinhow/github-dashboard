@@ -27,3 +27,4 @@ Ler a spec do dashboard, o GLOSSARY e os ADRs 0001–0003, com atenção ao ADR-
 - Rótulos de mês a menos de 2 colunas do anterior são omitidos: um rótulo de 3 letras ocupa ~16 px e a coluna tem 14 px.
 - Smoke em 26/10/2026 local: 2.474 contribuições, 204 dias não-zero, 365 dias, `start` 2025-10-27, `end` 2026-10-26, soma dos dias igual ao total; 293 PRs preservados; cache hit ~16 ms; `INVALID_USER` 400.
 - 40 testes; `npm test` roda com `TZ=America/Sao_Paulo`. Typecheck e build verdes. Sem seletor/switch (fica no ticket 03), sem push/PR/merge.
+- T04: a conta/URL passou a ser por perfil; o heatmap continua global ao perfil e não recebe filtros de org/repo.

@@ -26,3 +26,4 @@ Ler a spec do dashboard, o GLOSSARY e os ADRs 0001–0003. O heatmap continua in
 - O viewer reutiliza `createCache` com TTL infinito: uma promessa por processo, erro não fica cacheado e a próxima requisição tenta de novo. Evita um memo próprio.
 - A API é estrita com `private` (400 fora de 0/1), mas a leitura da URL no cliente é tolerante e cai no padrão 1, para não quebrar link antigo ou digitado à mão.
 - A URL é normalizada com `history.replaceState` a cada pedido e reescrita com o login canônico depois da resposta. O modo pedido continua na URL para não-viewer, mesmo com o switch desligado/desabilitado.
+- T04: o seletor de usuário/URL foi estendido por perfis; o seletor de perfil é o novo contexto e a configuração por env/arquivo substitui a conta fixa.

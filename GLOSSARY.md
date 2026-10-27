@@ -41,11 +41,35 @@ Coluna do heatmap, de domingo a sábado, como no GitHub.
 _Evitar_: coluna
 
 **Usuário selecionado**:
-Login do GitHub cuja atividade está sendo exibida. O padrão é usuario-dev.
+Login do GitHub cuja atividade está sendo exibida. O padrão é o usuário do perfil selecionado.
 _Evitar_: usuário, conta
 
+**Perfil**:
+Conjunto nomeado de usuário, token (referenciado por variável de ambiente), URL da API/GraphQL, filtros e fuso. O perfil padrão vem do ambiente; os adicionais, de um arquivo local fora do git.
+_Evitar_: conta, workspace
+
+**Perfil padrão**:
+Perfil formado pelas variáveis de ambiente, usado quando a URL não pede outro perfil.
+_Evitar_: perfil principal, conta padrão
+
+**Token do perfil**:
+Nome da variável de ambiente que guarda o token do perfil. O valor nunca fica no arquivo de perfis nem no repositório.
+_Evitar_: token, PAT
+
+**Filtro de contexto**:
+Lista de organizações ou repositórios que restringe o gráfico de PRs do perfil. Não altera o heatmap.
+_Evitar_: filtro de repositório, escopo
+
+**Fuso do corte mensal**:
+Fuso IANA do perfil que define onde um mês começa e termina nas janelas mensais e no heatmap.
+_Evitar_: timezone, fuso horário
+
+**GitHub Enterprise**:
+Instância do GitHub com URL de API/GraphQL própria, configurada no perfil.
+_Evitar_: GHE, GitHub corporativo
+
 **Viewer**:
-Dono do token do GitHub configurado no servidor. É o único usuário para quem o modo privado tem efeito.
+Dono do token do perfil selecionado. É o único usuário para quem o modo privado tem efeito.
 _Evitar_: usuário logado, dono
 
 **Modo privado**:
