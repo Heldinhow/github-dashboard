@@ -1,22 +1,25 @@
 import { activitySearch, type ActivityRequest } from '../shared/state.ts'
-import type { ActivityResponse } from '../shared/types.ts'
+import type { ActivityResponse, PublicProfile } from '../shared/types.ts'
 
 interface ErrorBody {
   error: {
     code: string
     message: string
     retryAt?: string
+    profiles?: PublicProfile[]
   }
 }
 
 export class ApiClientError extends Error {
   readonly code: string
   readonly retryAt?: string
+  readonly profiles?: PublicProfile[]
 
   constructor(body: ErrorBody['error']) {
     super(body.message)
     this.code = body.code
     this.retryAt = body.retryAt
+    this.profiles = body.profiles
   }
 }
 

@@ -29,3 +29,9 @@
 Ler a spec (seções de perfis/configuração, contrato, consultas, cache, controles e testes), o GLOSSARY e os ADRs 0001–0004. O heatmap continua incluindo privadas e não recebe filtros de org/repo; o switch de privados vale só para PRs. Ticket 04 é uma generalização dos tickets 01–03, que ficam como histórico.
 
 Implementação: configuração em `server/config.ts`, cliente GraphQL com endpoint por perfil, cache por perfil e UI com seletor/resumo. 82 testes Vitest; smoke real em 26/10/2026 cobriu perfil padrão (privados on/off), perfil adicional, outro usuário, cache por recarga de URL e os erros `CONFIG_MISSING`, `CONFIG_INVALID`, `TOKEN_MISSING` e `UNKNOWN_PROFILE`.
+
+## Comments
+
+- 2026-10-26 — Code review (P1 histórico): aceitação explícita de que os commits dos tickets 01–03 mantêm o usuário de desenvolvimento em código/testes como registro histórico. A história não será reescrita; o HEAD e os artefatos atuais (código, testes, `.env.example`, `profiles.example.json`, README) são genéricos e sem usuário embutido.
+- 2026-10-26 — Correções do review: offset das janelas calculado no horário local pedido (meia-noite e 23:59:59) em vez do meio-dia, com testes em `Australia/Lord_Howe` e `America/New_York`; `user: null` → `USER_NOT_FOUND` e `user` ausente/incompleto → `GITHUB_ERROR`; erros `UNKNOWN_PROFILE`/`TOKEN_MISSING` levam `profiles` e a UI popula o seletor; `x-ratelimit-reset` malformado mantém `RATE_LIMITED` sem `retryAt`. 91 testes Vitest; smoke real confirmou `profiles` no 400 `UNKNOWN_PROFILE` e uma resposta 200 válida.
+- Decisão: o offset é resolvido convertendo o relógio local para UTC em duas passadas, sem depender do `TZ` do processo, em vez de manter uma tabela de offsets por fuso. É a opção mais simples que cobre as transições de DST.

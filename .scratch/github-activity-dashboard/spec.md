@@ -82,7 +82,7 @@ Uma página única, escura e em pt-BR, com duas visões: barras de PRs mergeados
 - `timeZone` é um fuso IANA validado. Padrão `UTC`; o `.env.example` mostra `America/Sao_Paulo` como exemplo. Ele define as janelas mensais e a janela de 365 dias do heatmap do perfil. O qualificador `merged:` do GitHub continua usando datas UTC (ADR-0003).
 - URL do GraphQL: `graphqlUrl` explícita vence; senão deriva de `apiUrl`: `https://api.github.com` → `https://api.github.com/graphql`; `https://HOST/api/v3` → `https://HOST/api/graphql`; `https://HOST` → `https://HOST/api/graphql`. Normalizar barras e validar a URL.
 - Configuração lida no startup; mudanças exigem reinício. Nome duplicado, JSON inválido, campo obrigatório ausente, URL/timezone/filtro inválido → `CONFIG_INVALID`; falta de `GITHUB_USER` → `CONFIG_MISSING`; variável de token do perfil ausente → `TOKEN_MISSING`.
-- O seletor de perfil usa a lista `profiles` da resposta. Trocar de perfil atualiza `?profile=`, volta o usuário para o usuário do perfil, liga o modo privado e busca de novo.
+- O seletor de perfil usa a lista `profiles` da resposta. Trocar de perfil atualiza `?profile=`, volta o usuário para o usuário do perfil, liga o modo privado e busca de novo. Erros de perfil desconhecido ou token ausente também trazem `profiles`, para o seletor continuar populado e permitir a troca.
 
 ### Arquitetura
 
@@ -142,7 +142,7 @@ Uma página única, escura e em pt-BR, com duas visões: barras de PRs mergeados
 - `contributions.total` é a soma dos dias; `start`/`end` são as datas locais do intervalo no `timeZone` do perfil; `days` é cronológico, filtrado a `[start, end]` e inclui dias com zero.
 - `fetchedAt` é o instante em que os dados vieram do GitHub, não o instante do cache hit.
 - A resposta leva `Cache-Control: no-store`; o cache é interno do servidor.
-- Erros usam `{ "error": { "code": "...", "message": "...", "retryAt"?: "..." } }` e mensagens em pt-BR; `retryAt`, quando presente, é ISO 8601 UTC:
+- Erros usam `{ "error": { "code": "...", "message": "...", "retryAt"?: "...", "profiles"?: [...] } }` e mensagens em pt-BR; `retryAt`, quando presente, é ISO 8601 UTC:
 
 | HTTP | code | Quando |
 | --- | --- | --- |
@@ -157,6 +157,7 @@ Uma página única, escura e em pt-BR, com duas visões: barras de PRs mergeados
 | 503 | `CONFIG_INVALID` | Arquivo de perfis, URL, fuso ou filtro inválido. |
 | 503 | `TOKEN_MISSING` | Variável de ambiente do token do perfil não configurada. |
 
+- `profiles` acompanha `UNKNOWN_PROFILE` e `TOKEN_MISSING` (configuração de perfis conhecida), no mesmo formato da resposta 200, para a interface manter o seletor de perfil utilizável. Erros de configuração sem perfis carregados não trazem a lista.
 - Mensagens seguras: nunca incluir o token nem o corpo bruto de erro do GitHub. O cliente exibe a mensagem do servidor.
 
 ### Consultas ao GitHub
@@ -184,8 +185,8 @@ query ($user: String!, $from: DateTime!, $to: DateTime!) {
 - A busca de PR é `is:pr is:merged author:<login> merged:<início>..<fim>`; quando o modo privado está desligado, inclui `is:public`. O login já foi validado; as datas são geradas pelo servidor.
 - Filtros do perfil: se `repos` estiver preenchido, adiciona `repo:<owner/name>` para cada repositório; senão, se `orgs` estiver preenchido, adiciona `org:<nome>` para cada organização. Se ambos existirem, `repos` vence. Os filtros valem só para as buscas de PR; o heatmap continua global.
 - As 12 janelas são geradas no `timeZone` do perfil: 11 meses fechados e o mês parcial, cujo fim é hoje. O qualificador `merged:` do GitHub usa datas UTC; a diferença de borda é aceita (ADR-0003).
-- Heatmap: `from` é o início do dia 364 dias antes de hoje e `to` é o fim do dia de hoje, no `timeZone` do perfil (ISO 8601 com offset), totalizando 365 dias inclusivos. Achatar as semanas em uma lista de dias e filtrar para `[start, end]`; o total é a soma dos dias filtrados.
-- Erros do GraphQL são avaliados antes de `user` nulo: se houver `errors`, mapear `RATE_LIMITED` e `NOT_FOUND`; se não houver errors e `user` vier nulo, responder `USER_NOT_FOUND`. 403 com headers de rate limit vira `RATE_LIMITED`; outros 401/403 viram `TOKEN_INVALID`. Qualquer outro erro ou alias faltante vira `GITHUB_ERROR` (sem gráfico parcial).
+- Heatmap: `from` é o início do dia 364 dias antes de hoje e `to` é o fim do dia de hoje, no `timeZone` do perfil (ISO 8601 com offset), totalizando 365 dias inclusivos. O offset é o vigente no horário local pedido (meia-noite e 23:59:59), não o do meio-dia; assim dias de transição de DST ficam corretos. Achatar as semanas em uma lista de dias e filtrar para `[start, end]`; o total é a soma dos dias filtrados.
+- Erros do GraphQL são avaliados antes de `user` nulo: se houver `errors`, mapear `RATE_LIMITED` e `NOT_FOUND`; se não houver errors e `user` vier nulo, responder `USER_NOT_FOUND`; `user` ausente ou sem `login` é resposta incompleta e vira `GITHUB_ERROR`. 403 com headers de rate limit vira `RATE_LIMITED`; outros 401/403 viram `TOKEN_INVALID`. Qualquer outro erro ou alias faltante vira `GITHUB_ERROR` (sem gráfico parcial). `x-ratelimit-reset` malformado mantém `RATE_LIMITED` sem `retryAt`.
 - Limite: 12 buscas por cache miss (o limite de busca autenticada é 30/min). O botão Aplicar, o cache de 1 h e os controles desabilitados durante o load evitam rajadas. O viewer é uma chamada separada por perfil, só na primeira vez.
 
 ### Cache
@@ -268,10 +269,10 @@ query ($user: String!, $from: DateTime!, $to: DateTime!) {
 
 - Seams escolhidos: os módulos puros de janelas mensais/query/mapeamento/estatísticas, o módulo puro de níveis do heatmap e o layout da grade. São o ponto mais alto que dá para testar sem mockar a rede ou o DOM.
 - Um bom teste aqui exercita o comportamento externo das funções puras com entradas determinísticas: uma data fixa, o fuso do perfil (ex.: `UTC` e `America/Sao_Paulo`), contagens conhecidas e respostas de alias embaralhadas. Sem snapshots, sem detalhes de implementação.
-- Perfis: perfil padrão do ambiente, perfis adicionais do arquivo, nome duplicado/inválido, `tokenEnv` ausente, `GITHUB_USER` ausente, perfil desconhecido e lista de perfis sem tokens/URLs.
+- Perfis: perfil padrão do ambiente, perfis adicionais do arquivo, nome duplicado/inválido, `tokenEnv` ausente, `GITHUB_USER` ausente, perfil desconhecido, lista de perfis sem tokens/URLs e erro de `UNKNOWN_PROFILE`/`TOKEN_MISSING` com `profiles` para recuperação.
 - URLs: `https://api.github.com` → `/graphql`; `https://HOST/api/v3` → `https://HOST/api/graphql`; raiz do GitHub Enterprise; URL GraphQL explícita; barras finais; URL inválida.
 - Filtros: `orgs` vira `org:`; `repos` vira `repo:`; se ambos, `repos` vence; filtro inválido vira configuração inválida.
-- Fuso: janelas mensais em `UTC`, `America/Sao_Paulo` e outro fuso; virada de mês; janela de 365 dias do heatmap no fuso do perfil.
+- Fuso: janelas mensais em `UTC`, `America/Sao_Paulo` e outro fuso; virada de mês; janela de 365 dias do heatmap no fuso do perfil; borda de DST (`Australia/Lord_Howe` em `2024-10-06` e `America/New_York`) sem depender do `TZ` do processo.
 - Janelas mensais: 12 itens na ordem certa, rótulos pt-BR, 11 fechados + parcial, fim do parcial = hoje, anos bissextos, virada de ano, primeiro dia do mês.
 - Layout do heatmap: janela de 365 dias, `start`/`end` locais, datas `YYYY-MM-DD` interpretadas como datas de calendário local, domingo como primeira coluna, padding das bordas, 53/54 colunas, rótulo do primeiro mês parcial; rodar com `TZ=America/Sao_Paulo`.
 - Query builder: um alias por mês, `is:pr is:merged`, `author` correto, `merged:início..fim` correto, `is:public` presente só no modo público.
