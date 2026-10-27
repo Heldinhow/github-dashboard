@@ -1,6 +1,6 @@
 # 01: Primeira visão — PRs mergeados por mês
 
-**What to build:** A página dark em pt-BR com a primeira visão completa: os PRs mergeados de usuario-dev na janela de 12 meses, em barras com valor em cima, eixo Y “PRs mergeados”, grade pontilhada, mês parcial “(até agora)” e os três stat cards. O dado vem de uma API do próprio projeto que lê `GITHUB_TOKEN` do servidor, consulta o GraphQL do GitHub, agrega e cacheia por 1 hora. A página tem skeleton, erro com “Tentar de novo” e “Atualizado às HH:MM”. Ainda não há heatmap, seletor de usuário nem switch de privados.
+**What to build:** A página dark em pt-BR com a primeira visão completa: os PRs mergeados do usuário configurado na janela de 12 meses, em barras com valor em cima, eixo Y “PRs mergeados”, grade pontilhada, mês parcial “(até agora)” e os três stat cards. O dado vem de uma API do próprio projeto que lê `GITHUB_TOKEN` do servidor, consulta o GraphQL do GitHub, agrega e cacheia por 1 hora. A página tem skeleton, erro com “Tentar de novo” e “Atualizado às HH:MM”. Ainda não há heatmap, seletor de usuário nem switch de privados.
 
 **Blocked by:** None (can start immediately).
 
@@ -24,6 +24,6 @@ Ler a spec do dashboard, o GLOSSARY e os ADRs 0001–0003. Este ticket não incl
 ## Comments
 
 - Cache em memória com TTL de 1 h, chave por login em minúsculas + data local em `America/Sao_Paulo`; o modo privado entra na chave no ticket 03. Erros não são cacheados e requisições concorrentes compartilham a promessa.
-- A API já aceita `?user=` e valida o formato, mas a página desta etapa sempre consulta o padrão usuario-dev. Sem query de viewer e sem `contributions`.
+- A API já aceita `?user=` e valida o formato, mas a página desta etapa sempre consulta o usuário padrão da configuração. Sem query de viewer e sem `contributions`.
 - 22 testes Vitest; smoke real em 26/10/2026: total 293, média 24,3, recorde 117 em mar/26, parcial 26. Cache hit em ~1 ms; `TOKEN_MISSING` e `INVALID_USER` verificados.
-- T04: a configuração de conta/URL foi generalizada por perfis; o usuario-dev fixo deste ticket é histórico e foi removido no ticket 04.
+- T04: a configuração de conta/URL foi generalizada por perfis; o usuário fixo deste ticket é histórico e foi removido no ticket 04.

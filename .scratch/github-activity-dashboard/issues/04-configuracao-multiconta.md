@@ -6,7 +6,7 @@
 
 **Status:** done
 
-- [x] O perfil padrão usa `GITHUB_USER` e `GITHUB_TOKEN` (obrigatórios), `GITHUB_API_URL` (padrão `https://api.github.com`), `GITHUB_GRAPHQL_URL` (opcional; derivada), `GITHUB_PROFILE_NAME` (padrão `default`), `GITHUB_TIME_ZONE` (padrão `UTC`) e `GITHUB_ORGS`/`GITHUB_REPOS` (opcionais). Não há usuário padrão nem `usuario-dev` embutido no código, nos testes, no `.env.example` ou no README.
+- [x] O perfil padrão usa `GITHUB_USER` e `GITHUB_TOKEN` (obrigatórios), `GITHUB_API_URL` (padrão `https://api.github.com`), `GITHUB_GRAPHQL_URL` (opcional; derivada), `GITHUB_PROFILE_NAME` (padrão `default`), `GITHUB_TIME_ZONE` (padrão `UTC`) e `GITHUB_ORGS`/`GITHUB_REPOS` (opcionais). Não há usuário padrão embutido no código, nos testes, no `.env.example` ou no README.
 - [x] `GITHUB_PROFILES_FILE` (padrão `./profiles.local.json`) carrega perfis adicionais com `name`, `user`, `tokenEnv`, `apiUrl`, `graphqlUrl`, `orgs`, `repos` e `timeZone`; `name` é único, `user`/`tokenEnv` são obrigatórios e o arquivo não contém valor de token. `profiles.local.json` está no `.gitignore`; `profiles.example.json` é versionado sem segredos.
 - [x] Config inválida vira erro claro: `CONFIG_MISSING` sem `GITHUB_USER`/perfil padrão, `CONFIG_INVALID` para JSON/campo/URL/fuso/filtro inválido, `TOKEN_MISSING` para variável de token ausente e `UNKNOWN_PROFILE` para perfil inexistente. Nada cai em uma conta padrão.
 - [x] A API aceita `profile` e devolve `profile`, `profiles` (nome/usuário, sem tokens/URLs), `filters` (`orgs`, `repos`, `timeZone` efetivos), `viewer`, `canIncludePrivate` e `includePrivate`; o viewer é resolvido por perfil e o cache usa perfil + usuário + modo efetivo + dia no fuso do perfil.
